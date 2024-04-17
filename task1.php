@@ -1,60 +1,53 @@
 <?php
-// Путь к исходному файлу
-$sourceFile = 'students.txt';
-// Путь к выходному файлу
-$outputFile = 'students_new1.txt';
+	// открытие файлов
+	$file = fopen('students.txt', 'r');
+	$file2 = fopen('students_new1.txt', 'w');
 
-// Читаем содержимое исходного файла
-$content = file_get_contents($sourceFile);
+	// читаем файлы по строке
+	while (!feof($file)) {
+		$line = fgets($file);
+		// извлекаем год рождения
+		preg_match('/Год рождения: (\d{4})/', $line, $matches);
+		$birthYear = $matches[1];
+		
+		// извлекаем год выпуска
+		preg_match('/Год выпуска: (\d{4})/', $line, $matches);
+		$graduationYear = $matches[1];
+		
+		$type = settype($birthYear, 'int');
+		$type = settype($graduationYear, 'int');
 
-// Разбиваем содержимое на отдельные записи
-$records = explode("\n", $content);
-
-// Открываем выходной файл для записи
-$file = fopen($outputFile, 'w') or die("Не удалось открыть файл для записи");
-
-foreach ($records as $record) {
-    // Разбиваем запись на отдельные поля
-    $fields = explode(";", $record);
-
-    // Извлекаем год рождения и год выпуска
-    list($key, $birthYear) = explode(":", $fields[1]);
-	$birthYear = intval(trim($birthYear));
-
-	list($key, $graduationYear) = explode(":", $fields[2]);
-	$graduationYear = intval(trim($graduationYear));
-
-
-    // Проверяем условия
-    if ($graduationYear - $birthYear <= 17) {
-        // Если год выпуска - год рождения <= 17, проверяем оценки
-        list($key, $grades) = explode(":", $fields[4]);
-		$grades = trim($grades);
-        // Проверяем, что все оценки равны 5
-        // Используем ereg для проверки наличия всех пятерки
-        if (preg_match('/\b\w+\s*-\s*5\b(?:,\s*\b\w+\s*-\s*5\b){4}/', $grades)) {
-		// Если все оценки равны 5, запись не сохраняется
-		continue;
+		// извлекаем оценки аттестата
+		preg_match('/Оценки в аттестате: (.*);/', $line, $matches);
+		$grades = explode(', ', $matches[1]);
+		$gradesOnly = array_map(function($grade) {
+			return (int) preg_replace('/\D/', '', $grade);
+		}, $grades);
+		
+		// проверка на наличие в аттестате только пятерок
+		$wow = true;
+		foreach ($gradesOnly as $grade) {
+			if ($grade != 5) {
+				$wow = false;
+				break;
+			}
 		}
+		$dis = $graduationYear - $birthYear;
+		// проверка условия
+		if ($wow && $dis > 17)
+			continue;
+		else
+			fwrite($file2, $line);
+	}
+	// закрытие файлов
+	fclose($file);
+	fclose($file2);
 
-    }
+	file_put_contents('students.txt', file_get_contents('students_new1.txt'));
+	
+	// вывод данных на экран
+	$content = file_get_contents("students.txt");
+	echo nl2br($content);
 
-    // Если запись не удалена, записываем её в выходной файл
-    fwrite($file, $record . "\n");
-}
-
-// Закрываем выходной файл
-fclose($file);
-// Выводим содержимое выходного файла
-echo nl2br(file_get_contents($outputFile));
-
-$sourceFile = 'students_new1.txt';
-// Путь к файлу, содержимое которого нужно заменить
-$targetFile = 'students.txt';
-
-// Читаем содержимое исходного файла
-$content = file_get_contents($sourceFile);
-
-// Записываем содержимое исходного файла в целевой файл
-$result = file_put_contents($targetFile, $content);
+	file_put_contents('students_new1.txt', '');
 ?>
